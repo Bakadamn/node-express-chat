@@ -173,10 +173,13 @@
 			document.getElementById('infoCo').textContent = "Erreur de login / mot de passe"
 		})
 
+		socket.on("UtilisateurCree", function(userMdp) {
+			document.getElementById('infoCo').textContent = "Utilisateur créé ! :D"
+		})
+
 		let listeUtilisateurCo = []
 		socket.on("majConnectes", function(utilisateurs){
 			
-			console.log(utilisateurs + " *****************************")
 
 			while (listeUser.firstChild) {
 				listeUser.removeChild(listeUser.lastChild);
@@ -205,6 +208,7 @@
 		
 			//
 		})
+		//Mise a jour des messages 
 		socket.on("majMessage", function(messages) {
 
 			while (listeMessage.firstChild) {

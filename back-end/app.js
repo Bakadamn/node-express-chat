@@ -33,16 +33,19 @@ module.exports = function (app, server) {
         
 
         io.on('connection', (socket) =>{
+            //Je crée un nom anonyme + random (pas très solide mais c'est pour l'exemple !!)
             let r = Math.floor(Math.random() * 9999)
             let userConnecte = new userCo({login : "anonyme"+r})
 
+            //On met a jour les utilisateurs connectés
             userConnecte.save().then(envoiUserCo);
 
             envoiMessages()
+
             console.log("utilisateur non loggé connecté : " + socket.id)
 
 
-
+            //Lors d'un essai de connexion
             socket.on('tryConnection', (loginMdp) => {
                         
                 user.findOne({login : loginMdp.login})
@@ -69,6 +72,8 @@ module.exports = function (app, server) {
                 const newuser = new user({login : loginMdp.login, mdp : loginMdp.mdp});
                 newuser.save()
                 console.log(newuser + " utilisateur crée")
+                
+                io.emit("UtilisateurCree")
             })
     
             socket.on('disconnect', () => {
@@ -77,6 +82,7 @@ module.exports = function (app, server) {
               io.emit('notification', `Bye ${socket.id}`);
               envoiUserCo()
             })
+            //Lorsqu'un message est envoyé
             socket.on('messageEnvoi', (value) => {
                 let date = new Date()
                 let aEnvoyer = new messageSchem({
@@ -89,11 +95,15 @@ module.exports = function (app, server) {
                     }
                 })
 
-                aEnvoyer.save().then(
+                aEnvoyer.save().then( x =>
                     messageSchem.find().then(liste =>{
                         io.emit('majMessage', liste)
+                        
+                        envoiUserCo()
                     })
+                    
                 )
+
                 
             } )
 
@@ -110,8 +120,8 @@ module.exports = function (app, server) {
         {
             let listeNomUser = []
             let listeUser = await userCo.find()
-            listeUser.forEach(element => {
-                let nbr = listeUtiliateur(element.login);
+            listeUser.forEach(async(element) =>  {
+                let nbr = await listeUtiliateur(element.login);
                 listeNomUser.push(element.login.toString() + `(${nbr})`);
 
                 io.emit('majConnectes', listeNomUser);
@@ -120,7 +130,7 @@ module.exports = function (app, server) {
 
         async function listeUtiliateur(user)
         {
-            return await userCo.countDocuments({login : user})
+            return await messageSchem.countDocuments({user  : user})
           
         }
     })
