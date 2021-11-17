@@ -12,7 +12,7 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.min.js"
 		integrity="sha512-N5JbZMETkl+0SZh5l8OA2VxSfF120owfQyy54iAXTJIKuqAn3A9TrNz1ypB55o8aSU5MxaodEgv74wGUvgUynQ=="
 		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	<script type="text/javascript" src="main.js" defer></script>
+	
 </head>
 
 <body>
@@ -46,13 +46,24 @@
 						</a>
 					</li>
 				</ul>
-				<div class="my-account">
+				<div  id="nonConnecteZone">		
+					<form id="connexionForm" action="">
+						<span>Login : </span>
+						<input id="inputLog" autocomplete="off"> </input>
+						<span style="display : block">Mot de passe : </span>
+						<input id="inputMdp" type="password" autocomplete="off" />
+						<button id = "btnConnexion">Connexion</button>
+						<button id = "btnCreer">Creer un compte</button>
+						<span id="infoCo" style="display : block"></span>
+					</form>
+				</div>
+				<div class="my-account" id="connectionZone">
 					<div class="image">
 						<img src="https://thispersondoesnotexist.com/image">
 						<i class="fa fa-circle online"></i>
 					</div>
-					<div class="name">
-						<span>John Doe</span>
+					<div class="name" >
+						<span id="nomUser">NOM UTILISATEUR</span>
 						<i class="fa fa-angle-down"></i>
 						<span class="availability">Available</span>
 					</div>
@@ -62,7 +73,7 @@
 			<div class="chat-area">
 				<div class="title"><b>Conversation title</b><i class="fa fa-search"></i></div>
 				<div class="chat-list">
-					<ul>
+					<ul id="messageConteneur">
 						<li class="me">
 							<div class="name">
 								<span class="">John Doe</span>
@@ -85,10 +96,10 @@
 				</div>
 				<div class="input-area">
 					<div class="input-wrapper">
-						<input type="text" value="" placeholder="Message here">
+						<input type="text" value="" placeholder="Message here" id="barreMessage">
 						<i class="fa fa-smile-o"></i>
 					</div>
-					<input type="button" value="Submit" class="send-btn">
+					<input type="button" value="Submit" class="send-btn" id="btnEnvoyer">
 				</div>
 			</div>
 			<div class="right-tabs">
@@ -101,11 +112,8 @@
 				</ul>
 				<ul class="tabs-container">
 					<li class="active">
-						<ul class="member-list">
-							<li><span class="status online"><i class="fa fa-circle-o"></i></span><span>John Doe</span>
-							</li>
-							<li><span class="status online"><i class="fa fa-circle-o"></i></span><span>Christian
-									Smith</span></li>
+						<ul class="member-list" id="utilisateurConnectes">
+
 						</ul>
 					</li>
 					<li></li>
@@ -115,6 +123,124 @@
 			</div>
 		</div>
 	</div>
+
+	<script>
+		let socket = io('http://localhost:3000');
+
+		let connecte  = document.getElementById('connectionZone');
+
+		connecte.style.display = "none"
+
+		let connexionZone  = document.getElementById('nonConnecteZone');
+		let connexion  = document.getElementById('btnConnexion');
+		let creerCompte  = document.getElementById('btnCreer');
+		let connexionForm  = document.getElementById('connexionForm');
+
+		let listeUser = document.getElementById('utilisateurConnectes')
+		let listeMessage = document.getElementById('messageConteneur')
+
+		let inputLog  = document.getElementById('inputLog');
+		let inputMdp  = document.getElementById('inputMdp');
+
+		let btnEnvoiMsg = document.getElementById('btnEnvoyer')
+		let barreMessage = document.getElementById('barreMessage')
+
+		btnEnvoiMsg.addEventListener('click', event=>{
+			event.preventDefault();
+			scoket.emit('messageEnvoi', barreMessage.value)
+
+		})
+
+		creerCompte.addEventListener('click', event => {
+			event.preventDefault();
+			let logMdp = { login : inputLog.value, mdp : inputMdp.value}
+			socket.emit('createAccount', logMdp)
+		})
+		connexion.addEventListener('click', event => {
+			event.preventDefault()
+			let logMdp = { login : inputLog.value, mdp : inputMdp.value}
+			socket.emit('tryConnection', logMdp)
+		})
+
+		socket.on("ConnectionValide", (userMdp) => {
+			connexionZone.style.display = "none"
+			connecte.style.display = "block"
+			console.log(userMdp)
+			document.getElementById('nomUser').textContent = userMdp.login
+		})
+
+		socket.on("ConnectionErreur", (userMdp) => {
+			document.getElementById('infoCo').textContent = "Erreur de login / mot de passe"
+		})
+
+		let listeUtilisateurCo = []
+		socket.on("majConnectes", (utilisateurs) =>{
+			console.log(utilisateurs)
+			while (listeUser.firstChild) {
+				listeUser.removeChild(listeUser.lastChild);
+			}
+
+
+			utilisateurs.forEach(element =>{
+				var conteneur = document.createElement('li');
+				var item = document.createElement('span').textContent = element
+				
+				listeUser.appendChild(conteneur);
+				conteneur.prepend(item)
+			})
+
+		
+			//window.scrollTo(0, document.body.scrollHeight);
+		})
+		socket.on("majMessages", (messages) => {
+
+			console.log(utilisateurs)
+			while (listeMessage.firstChild) {
+				listeMessage.removeChild(listeMessage.lastChild);
+			}
+
+			let cpt = 0
+			utilisateurs.forEach(element =>{
+				var conteneur = document.createElement('li');
+				if(cpt%2 == 0)
+				{
+					conteneur.className = "me"
+				}
+				var conteneurNom = document.createElement('div')
+				conteneurNom.className = "name"
+				var nomSpan = document.createElement('span')
+				nomSpan.textContent = element.login
+				conteneurNom.prepend(nomSpan)
+
+				
+				var conteneurMessage = document.createElement('div')
+				conteneurMessage.className = "message"
+				var messagePara = document.createElement('p')
+				messagePara.textContent = element.message
+				var heureSpan = document.createElement('span')
+				heureSpan.textContent = element.heure
+				heureSpan.className = "msg-time"
+				conteneurMessage.prepend(messagePara)
+				conteneurMessage.prepend(heureSpan)
+
+				
+				listeMessage.prepend(conteneurNom);
+				listeMessage.prepend(conteneurMessage);
+				cpt++
+			})
+
+			// <li class="me">
+			// 				<div class="name">
+			// 					<span class="">John Doe</span>
+			// 				</div>
+			// 				<div class="message">
+			// 					<p>Hello</p>
+			// 					<span class="msg-time">5:00 pm</span>
+			// 				</div>
+			// 			</li>
+		})
+
+	</script>
 </body>
 
 </html>
