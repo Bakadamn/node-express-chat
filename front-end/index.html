@@ -72,7 +72,7 @@
 			</div>
 			<div class="chat-area">
 				<div class="title"><b>Conversation title</b><i class="fa fa-search"></i></div>
-				<div class="chat-list">
+				<div class="chat-list" id="messageScroller">
 					<ul id="messageConteneur">
 						<li class="me">
 							<div class="name">
@@ -147,7 +147,7 @@
 
 		btnEnvoiMsg.addEventListener('click', event=>{
 			event.preventDefault();
-			scoket.emit('messageEnvoi', barreMessage.value)
+			socket.emit('messageEnvoi', barreMessage.value)
 
 		})
 
@@ -162,72 +162,104 @@
 			socket.emit('tryConnection', logMdp)
 		})
 
-		socket.on("ConnectionValide", (userMdp) => {
+		socket.on("ConnectionValide", function(userMdp) {
 			connexionZone.style.display = "none"
 			connecte.style.display = "block"
 			console.log(userMdp)
 			document.getElementById('nomUser').textContent = userMdp.login
 		})
 
-		socket.on("ConnectionErreur", (userMdp) => {
+		socket.on("ConnectionErreur", function(userMdp) {
 			document.getElementById('infoCo').textContent = "Erreur de login / mot de passe"
 		})
 
 		let listeUtilisateurCo = []
-		socket.on("majConnectes", (utilisateurs) =>{
-			console.log(utilisateurs)
+		socket.on("majConnectes", function(utilisateurs){
+			
+			console.log(utilisateurs + " *****************************")
+
 			while (listeUser.firstChild) {
 				listeUser.removeChild(listeUser.lastChild);
 			}
 
 
 			utilisateurs.forEach(element =>{
-				var conteneur = document.createElement('li');
-				var item = document.createElement('span').textContent = element
+
+				let elementInsere = 
+					`<li class="}">
+								<span class="">${element}</span>
+						</li>`;
+
+				listeUser.insertAdjacentHTML('beforeend', elementInsere);
+
+
+
+
+				// var conteneur = document.createElement('li');
+				// var item = document.createElement('span').textContent = element
 				
-				listeUser.appendChild(conteneur);
-				conteneur.prepend(item)
+				// listeUser.appendChild(conteneur);
+				// conteneur.prepend(item)
 			})
 
 		
-			//window.scrollTo(0, document.body.scrollHeight);
+			//
 		})
-		socket.on("majMessages", (messages) => {
+		socket.on("majMessage", function(messages) {
 
-			console.log(utilisateurs)
 			while (listeMessage.firstChild) {
 				listeMessage.removeChild(listeMessage.lastChild);
 			}
 
-			let cpt = 0
-			utilisateurs.forEach(element =>{
-				var conteneur = document.createElement('li');
+			var superConteneur = document.createElement('ul')
+			let cpt = 0;
+			messages.forEach(element =>{
+				console.log(element)
+
+				let me = ""
 				if(cpt%2 == 0)
 				{
-					conteneur.className = "me"
+					me = "me"
 				}
-				var conteneurNom = document.createElement('div')
-				conteneurNom.className = "name"
-				var nomSpan = document.createElement('span')
-				nomSpan.textContent = element.login
-				conteneurNom.prepend(nomSpan)
+				let elementInsere = 
+					`<li class="${me}">
+							<div class="name">
+								<span class="">${element.user}</span>
+							</div>
+							<div class="message">
+								<p>${element.message}</p>
+								<span class="msg-time">${element.timeStamp.hours +":"+element.timeStamp.minutes}</span>
+							</div>
+						</li>`
+				listeMessage.insertAdjacentHTML('beforeend', elementInsere);
 
 				
-				var conteneurMessage = document.createElement('div')
-				conteneurMessage.className = "message"
-				var messagePara = document.createElement('p')
-				messagePara.textContent = element.message
-				var heureSpan = document.createElement('span')
-				heureSpan.textContent = element.heure
-				heureSpan.className = "msg-time"
-				conteneurMessage.prepend(messagePara)
-				conteneurMessage.prepend(heureSpan)
+				//var conteneur = document.createElement('li');
+				// var conteneurNom = document.createElement('div')
+				// conteneurNom.classList.add("name")
+				// var nomSpan = document.createElement('span')
+				// nomSpan.textContent = element.user.toString()
+				// nomSpan.className = 
+				// conteneurNom.prepend(nomSpan)
 
 				
-				listeMessage.prepend(conteneurNom);
-				listeMessage.prepend(conteneurMessage);
+				// var conteneurMessage = document.createElement('div')
+				// conteneurMessage.classList.add("message")
+				// var messagePara = document.createElement('p')
+				// messagePara.textContent = element.message
+				// var heureSpan = document.createElement('span')
+				// heureSpan.textContent = element.timeStamp.toString()
+				// heureSpan.classList.add("msg-time")
+				// conteneurMessage.prepend(messagePara)
+				// conteneurMessage.prepend(heureSpan)
+
+				// superConteneur.appendChild(conteneurMessage)
+				// superConteneur.appendChild(conteneurNom)
+				
+				// listeMessage.appendChild(superConteneur);
 				cpt++
 			})
+			document.getElementById('messageScroller').scrollTo(0, document.body.scrollHeight);
 
 			// <li class="me">
 			// 				<div class="name">

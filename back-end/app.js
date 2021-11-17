@@ -30,13 +30,18 @@ module.exports = function (app, server) {
     
     app.use(express.json());
 
-        io.on('connection', (socket) =>{
-            envoiUserCo();
-            let userConnecte = new userCo({login : socket.id})
-            userConnecte.save().then(envoiUserCo());
-            
+        
 
+        io.on('connection', (socket) =>{
+            let r = Math.floor(Math.random() * 9999)
+            let userConnecte = new userCo({login : "anonyme"+r})
+
+            userConnecte.save().then(envoiUserCo);
+
+            envoiMessages()
             console.log("utilisateur non loggé connecté : " + socket.id)
+
+
 
             socket.on('tryConnection', (loginMdp) => {
                         
@@ -45,16 +50,15 @@ module.exports = function (app, server) {
                     if(user.mdp == loginMdp.mdp)
                     {
                         console.log("utilisateur valide")
-                        socket.emit("ConnectionValide", loginMdp)
+                        io.emit("ConnectionValide", loginMdp)
                         userConnecte.delete();
                         userConnecte = new userCo({login : loginMdp.login})
-                        userConnecte.save().then(envoiUserCo())
+                        userConnecte.save().then(envoiUserCo)
                         
-                        envoiUserCo()
                     }
                     else{
                         console.log("erreur mdp/connection")
-                        socket.emit("ConnectionErreur")
+                        io.emit("ConnectionErreur")
                     }
                 }
                     
@@ -68,35 +72,56 @@ module.exports = function (app, server) {
             })
     
             socket.on('disconnect', () => {
-              userConnecte.delete().then(envoiUserCo());
+              userConnecte.delete().then(envoiUserCo);
               console.log(`utilisateur non loggé ${socket.id} disconnected`);
               io.emit('notification', `Bye ${socket.id}`);
-
+              envoiUserCo()
+            })
             socket.on('messageEnvoi', (value) => {
+                let date = new Date()
                 let aEnvoyer = new messageSchem({
                     message : value,
                     user : userConnecte.login,
-                    timestamp : {
-                        hours : new Date().getHours,
-                        minutes : new Date().getMinutes,
-                        seconds : new Date().getSeconds
+                    timeStamp : {
+                        hours : date.getHours(),
+                        minutes : date.getMinutes(),
+                        seconds : date.getSeconds()
                     }
                 })
-                aEnvoyer.save()
+
+                aEnvoyer.save().then(
+                    messageSchem.find().then(liste =>{
+                        io.emit('majMessage', liste)
+                    })
+                )
+                
             } )
 
+        function envoiMessages()
+        {
+            messageSchem.find().then(liste =>{
+                io.emit('majMessage', liste)
+            })
             
-        })
+        }
+
+        
         async function envoiUserCo()
         {
             let listeNomUser = []
-            await userCo.find().then(liste =>{
-                
-                liste.forEach(element => {
-                    listeNomUser.push(element.login.toString())
-                });
-                socket.emit('majConnectes', listeNomUser)
-            })
+            let listeUser = await userCo.find()
+            listeUser.forEach(element => {
+                let nbr = listeUtiliateur(element.login);
+                listeNomUser.push(element.login.toString() + `(${nbr})`);
+
+                io.emit('majConnectes', listeNomUser);
+            });
+        }
+
+        async function listeUtiliateur(user)
+        {
+            return await userCo.countDocuments({login : user})
+          
         }
     })
 
